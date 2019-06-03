@@ -1,0 +1,57 @@
+version: '3.7'
+services:
+  prometheus:
+    build:
+      context: ./prometheus
+    ports:
+      - 9090:9090
+    networks:
+      - prom_network
+      - default
+    volumes:
+      - prometheus_data:/prometheus
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+  grafana:
+    build:
+      context: ./grafana
+    ports:
+      - 3000:3000
+    networks:
+      - default
+    volumes:
+      - grafana_data:/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+    environment:
+      - GF_LOG_LEVEL=debug
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    depends_on:
+      - prometheus
+  node-exporter:
+    image: 'prom/node-exporter:v0.18.0'
+    networks:
+      - default
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  default:
+  prom_network:
+    name: prom_network
+volumes:
+  grafana_data:
+  prometheus_data:
